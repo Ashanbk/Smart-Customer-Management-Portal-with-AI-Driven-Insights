@@ -1,6 +1,6 @@
 # Smart-Customer-Management-Portal-with-AI-Driven-Insights
 A lightweight AI-powered customer management web application for a fictional networking hardware company. This project combines traditional CRM features with machine learning and LLM-based intelligence to provide actionable customer insights.
-# Overview
+# 🚀Overview
 This portal enables users to manage customer data while leveraging AI to:
 
 Perform natural language queries on customer data
