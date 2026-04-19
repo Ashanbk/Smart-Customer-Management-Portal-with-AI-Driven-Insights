@@ -119,8 +119,12 @@ Use tools like Postman or browser for testing.
 
 ---
 
+---
+
+* Clearing and checking fakers/generating fake customer IDs to test
 # 👨‍💻 Author
 
 Ashan Kadadi
+Aashritha Rajendra
 
 ---
