@@ -65,16 +65,16 @@ The system uses **synthetic data** and simulates real-world enterprise analytics
 ---
 
 ## 📁 Project Structure
-smart-customer-portal/
-│
-├── app.py
-├── models/
-├── routes/
-├── services/
-├── generate_data.py
-│
-frontend/
-├── app.py
+-smart-customer-portal/
+-│
+-├── app.py
+-├── models/
+-├── routes/
+-├── services/
+-├── generate_data.py
+-│
+-frontend/
+-├── app.py
 
 
 ---
@@ -104,23 +104,23 @@ streamlit run app.py
 ```
 
 # 🌐 Access
-Backend: http://127.0.0.1:5000
-Frontend: http://localhost:8501
+-Backend: http://127.0.0.1:5000
+-Frontend: http://localhost:8501
 
 # 📦 Deliverables
-✅ Working full-stack application
-✅ 200+ synthetic customer records
-✅ AI-powered analytics features
-✅ Natural language query system
-✅ GitHub repository with source code
+-✅ Working full-stack application
+-✅ 200+ synthetic customer records
+-✅ AI-powered analytics features
+-✅ Natural language query system
+-✅ GitHub repository with source code
 
 #  🎯 Future Improvements
-Deploy to cloud (Streamlit Cloud / Render)
-Add authentication
-Improve ML model accuracy
-Add advanced analytics dashboards
+-Deploy to cloud (Streamlit Cloud / Render)
+-Add authentication
+-Improve ML model accuracy
+-Add advanced analytics dashboards
 
-#👨‍💻 Author
+# 👨‍💻 Author
 
-Ashan Kadadi
-Aashritha Rajendra
+-Ashan Kadadi
+-Aashritha Rajendra
