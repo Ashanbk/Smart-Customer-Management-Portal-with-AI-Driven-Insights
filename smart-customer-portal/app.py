@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 from models import db
 from routes import main_bp
@@ -12,13 +12,16 @@ def create_app() -> Flask:
     db.init_app(app)
     app.register_blueprint(main_bp)
 
+    with app.app_context():
+        db.create_all()
+
+    @app.route("/")
+    def home():
+        return jsonify({"status": "ok", "message": "Backend is running"})
+
     return app
 
 
 if __name__ == "__main__":
     application = create_app()
     application.run(debug=True)
-
-@app.route("/")
-def home():
-    return "Backend is running 🚀"
