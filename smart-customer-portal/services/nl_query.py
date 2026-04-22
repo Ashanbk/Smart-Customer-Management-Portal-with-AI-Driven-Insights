@@ -38,7 +38,7 @@ DISALLOWED_KEYWORDS = {
     "savepoint",
 }
 MAX_RESULT_ROWS = 200
-MIN_INTENT_CONFIDENCE = 0.20
+MIN_INTENT_CONFIDENCE = 0.15
 
 SCHEMA_DESCRIPTION = """
 SQLite schema:
@@ -61,6 +61,12 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "show total counts",
         "quick summary of data",
         "high level KPI summary",
+        "how many customers do we have",
+        "total customers tickets devices",
+        "show me the overall numbers",
+        "what is our customer count",
+        "business overview",
+        "portfolio stats",
     ],
     "customers_by_region": [
         "show customers in europe",
@@ -71,6 +77,11 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "customers in latam",
         "show me customers by region",
         "list customers in mea",
+        "european customers",
+        "asia pacific accounts",
+        "north american customers",
+        "show customers from region",
+        "which customers are in europe",
     ],
     "customers_by_plan": [
         "show enterprise customers",
@@ -81,6 +92,9 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "plan wise customer list",
         "show customers by plan",
         "enterprise tier accounts",
+        "what plans do customers have",
+        "show all business tier customers",
+        "list growth plan accounts",
     ],
     "tickets_by_status": [
         "show open tickets",
@@ -91,6 +105,9 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "unresolved support tickets",
         "how many tickets by status",
         "status wise tickets",
+        "pending tickets",
+        "completed tickets",
+        "show me all open issues",
     ],
     "tickets_by_severity": [
         "show critical tickets",
@@ -101,6 +118,9 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "severity wise ticket report",
         "show sev1 tickets",
         "critical support incidents",
+        "p1 tickets",
+        "priority tickets",
+        "show all high priority issues",
     ],
     "contracts_expiring": [
         "contracts expiring soon",
@@ -111,6 +131,9 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "contract end report",
         "renewal pipeline",
         "list contracts ending next quarter",
+        "upcoming renewals",
+        "which contracts need renewal",
+        "show expiring contracts",
     ],
     "top_churn_risk": [
         "top churn risk customers",
@@ -121,6 +144,8 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "top 10 risky customers",
         "churn prediction list",
         "at risk customer ranking",
+        "show me customers about to leave",
+        "which customers might cancel",
     ],
     "top_health_scores": [
         "top healthy customers",
@@ -131,6 +156,8 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "top performing customers",
         "best customer wellness score",
         "healthy account list",
+        "most satisfied customers",
+        "customers in good standing",
     ],
     "device_inventory": [
         "device inventory summary",
@@ -141,6 +168,8 @@ INTENT_TRAINING_SAMPLES: dict[str, list[str]] = {
         "show router devices",
         "hardware inventory by device",
         "edge router usage",
+        "what devices do we have",
+        "device breakdown",
     ],
 }
 
@@ -868,8 +897,285 @@ def run_nl_query(user_query: str) -> dict[str, Any]:
             "query_type": None,
         }
 
+    if _openai_is_configured():
+        generated_sql, used_previous_context = _generate_sql_from_openai(clean_query)
+        safe_sql = _validate_and_finalize_sql(generated_sql)
+        results = _execute_sql_query(safe_sql)
+
+        _set_previous_context(query=clean_query, sql_query=safe_sql, intent=None, params=None)
+        return {
+            "query": clean_query,
+            "sql_query": safe_sql,
+            "used_previous_context": used_previous_context,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "openai_sql",
+            "intent": None,
+            "query_type": None,
+        }
+
+    # Fallback: Try keyword-based simple query matching
+    fallback_result = _try_keyword_fallback(clean_query)
+    if fallback_result is not None:
+        return fallback_result
+
     raise ValueError(
-        "Could not map this query to a supported ML intent. "
-        "Try examples like 'customers in europe', 'open tickets', "
-        "'top 5 churn risk customers', or 'summary metrics'."
+        "Could not understand your query. Try examples like:\n"
+        "• 'show customers in europe' - Filter customers by region\n"
+        "• 'open tickets' - Show tickets by status\n"
+        "• 'top 5 churn risk customers' - Show at-risk accounts\n"
+        "• 'summary metrics' - Overall business numbers\n"
+        "• 'contracts expiring soon' - Upcoming renewals"
     )
+
+
+def _try_keyword_fallback(user_query: str) -> dict[str, Any] | None:
+    """Simple keyword-based fallback for common queries."""
+    query_lower = user_query.lower().strip()
+
+    # Customer queries
+    if any(kw in query_lower for kw in ["customer", "account", "company"]):
+        if "region" in query_lower or any(r in query_lower for r in ["europe", "apac", "na", "latam", "mea", "america", "asia"]):
+            region = None
+            for r in ["europe", "apac", "north america", "latam", "mea"]:
+                if r in query_lower:
+                    region = r
+                    break
+            if region:
+                sql = "SELECT id, company_name, region, plan_tier, nps_score, monthly_usage FROM customers WHERE lower(region) = :region ORDER BY monthly_usage DESC LIMIT 25"
+                results = _execute_sql_query(sql, {"region": region})
+                return {
+                    "query": user_query,
+                    "sql_query": sql,
+                    "used_previous_context": False,
+                    "row_count": len(results),
+                    "results": results,
+                    "query_mode": "keyword_fallback",
+                    "intent": "customers_by_region",
+                    "query_type": "customers_by_region",
+                    "intent_confidence": 0.5,
+                }
+
+        if "plan" in query_lower or any(p in query_lower for p in ["enterprise", "business", "growth", "starter"]):
+            plan = None
+            for p in ["enterprise", "business", "growth", "starter"]:
+                if p in query_lower:
+                    plan = p
+                    break
+            if plan:
+                sql = "SELECT id, company_name, region, plan_tier, nps_score, monthly_usage FROM customers WHERE lower(plan_tier) = :plan ORDER BY nps_score DESC LIMIT 25"
+                results = _execute_sql_query(sql, {"plan": plan})
+                return {
+                    "query": user_query,
+                    "sql_query": sql,
+                    "used_previous_context": False,
+                    "row_count": len(results),
+                    "results": results,
+                    "query_mode": "keyword_fallback",
+                    "intent": "customers_by_plan",
+                    "query_type": "customers_by_plan",
+                    "intent_confidence": 0.5,
+                }
+
+        # Default: show all customers
+        sql = "SELECT id, company_name, region, plan_tier, nps_score, monthly_usage FROM customers ORDER BY id LIMIT 25"
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "all_customers",
+            "query_type": "all_customers",
+            "intent_confidence": 0.5,
+        }
+
+    # Ticket queries
+    if "ticket" in query_lower:
+        if "status" in query_lower or any(s in query_lower for s in ["open", "closed", "resolved", "progress"]):
+            status = None
+            for s in ["open", "closed", "resolved", "in progress"]:
+                if s in query_lower:
+                    status = s
+                    break
+            if status:
+                sql = "SELECT t.id, t.customer_id, c.company_name, t.severity, t.status, t.created_at FROM tickets t JOIN customers c ON c.id = t.customer_id WHERE lower(t.status) = :status ORDER BY t.created_at DESC LIMIT 25"
+                results = _execute_sql_query(sql, {"status": status})
+                return {
+                    "query": user_query,
+                    "sql_query": sql,
+                    "used_previous_context": False,
+                    "row_count": len(results),
+                    "results": results,
+                    "query_mode": "keyword_fallback",
+                    "intent": "tickets_by_status",
+                    "query_type": "tickets_by_status",
+                    "intent_confidence": 0.5,
+                }
+
+        if "severity" in query_lower or any(s in query_lower for s in ["critical", "high", "medium", "low", "p1", "p2"]):
+            severity = None
+            for s in ["critical", "high", "medium", "low"]:
+                if s in query_lower:
+                    severity = s
+                    break
+            if severity:
+                sql = "SELECT t.id, t.customer_id, c.company_name, t.severity, t.status, t.created_at FROM tickets t JOIN customers c ON c.id = t.customer_id WHERE lower(t.severity) = :severity ORDER BY t.created_at DESC LIMIT 25"
+                results = _execute_sql_query(sql, {"severity": severity})
+                return {
+                    "query": user_query,
+                    "sql_query": sql,
+                    "used_previous_context": False,
+                    "row_count": len(results),
+                    "results": results,
+                    "query_mode": "keyword_fallback",
+                    "intent": "tickets_by_severity",
+                    "query_type": "tickets_by_severity",
+                    "intent_confidence": 0.5,
+                }
+
+        # Default: show all tickets
+        sql = "SELECT t.id, t.customer_id, c.company_name, t.severity, t.status, t.created_at FROM tickets t JOIN customers c ON c.id = t.customer_id ORDER BY t.created_at DESC LIMIT 25"
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "all_tickets",
+            "query_type": "all_tickets",
+            "intent_confidence": 0.5,
+        }
+
+    # Summary/overview queries
+    if any(kw in query_lower for kw in ["summary", "overview", "metrics", "total", "count", "dashboard", "kpi"]):
+        sql = (
+            "SELECT "
+            "(SELECT COUNT(*) FROM customers) AS customer_count, "
+            "(SELECT COUNT(*) FROM tickets) AS ticket_count, "
+            "(SELECT COUNT(*) FROM devices) AS device_count, "
+            "(SELECT ROUND(AVG(nps_score), 2) FROM customers) AS average_nps, "
+            "(SELECT ROUND(AVG(monthly_usage), 2) FROM customers) AS average_usage"
+        )
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "portfolio_summary",
+            "query_type": "portfolio_summary",
+            "intent_confidence": 0.5,
+        }
+
+    # Churn risk queries
+    if "churn" in query_lower or "risk" in query_lower:
+        sql = (
+            "SELECT c.id, c.company_name, c.region, c.plan_tier, "
+            "COUNT(t.id) AS ticket_count, "
+            "ROUND(("
+            "(CASE WHEN c.nps_score < 0 THEN ABS(c.nps_score) / 100.0 ELSE 0 END) * 0.35 + "
+            "(CASE WHEN c.monthly_usage < 8000 THEN (8000 - c.monthly_usage) / 8000.0 ELSE 0 END) * 0.25 + "
+            "(MIN(COUNT(t.id), 10) / 10.0) * 0.25 + "
+            "(1.0 - (MIN(MAX(julianday(c.contract_end) - julianday('now'), 0), 365) / 365.0)) * 0.15"
+            "), 4) AS churn_risk_score "
+            "FROM customers AS c "
+            "LEFT JOIN tickets AS t ON t.customer_id = c.id "
+            "GROUP BY c.id "
+            "ORDER BY churn_risk_score DESC "
+            "LIMIT 10"
+        )
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "top_churn_risk",
+            "query_type": "top_churn_risk",
+            "intent_confidence": 0.5,
+        }
+
+    # Health score queries
+    if "health" in query_lower:
+        sql = (
+            "SELECT c.id, c.company_name, c.region, c.plan_tier, "
+            "COUNT(t.id) AS ticket_count, "
+            "ROUND(("
+            "((MIN(MAX(c.nps_score, -100), 100) + 100) / 200.0) * 35 + "
+            "(MIN(MAX(c.monthly_usage, 0), 50000) / 50000.0) * 30 + "
+            "(1.0 - (MIN(COUNT(t.id), 20) / 20.0)) * 20 + "
+            "(CASE "
+            "WHEN julianday(c.contract_end) - julianday('now') <= 0 THEN 0 "
+            "WHEN julianday(c.contract_end) - julianday('now') <= 30 THEN 2 "
+            "WHEN julianday(c.contract_end) - julianday('now') <= 90 THEN 8 "
+            "WHEN julianday(c.contract_end) - julianday('now') <= 180 THEN 12 "
+            "ELSE 15 END)"
+            "), 2) AS health_score "
+            "FROM customers AS c "
+            "LEFT JOIN tickets AS t ON t.customer_id = c.id "
+            "GROUP BY c.id "
+            "ORDER BY health_score DESC "
+            "LIMIT 10"
+        )
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "top_health_scores",
+            "query_type": "top_health_scores",
+            "intent_confidence": 0.5,
+        }
+
+    # Contract expiry queries
+    if "contract" in query_lower or "expir" in query_lower or "renewal" in query_lower:
+        sql = (
+            "SELECT id, company_name, region, plan_tier, contract_end, "
+            "CAST(julianday(contract_end) - julianday('now') AS INTEGER) AS days_left "
+            "FROM customers "
+            "WHERE date(contract_end) <= date('now', '+90 days') "
+            "ORDER BY contract_end ASC "
+            "LIMIT 25"
+        )
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "contracts_expiring",
+            "query_type": "contracts_expiring",
+            "intent_confidence": 0.5,
+        }
+
+    # Device queries
+    if "device" in query_lower or "iot" in query_lower or "router" in query_lower or "sensor" in query_lower:
+        sql = "SELECT device_type, SUM(count) AS total_units, COUNT(*) AS customer_records FROM devices GROUP BY device_type ORDER BY total_units DESC LIMIT 25"
+        results = _execute_sql_query(sql)
+        return {
+            "query": user_query,
+            "sql_query": sql,
+            "used_previous_context": False,
+            "row_count": len(results),
+            "results": results,
+            "query_mode": "keyword_fallback",
+            "intent": "device_inventory",
+            "query_type": "device_inventory",
+            "intent_confidence": 0.5,
+        }
+
+    return None

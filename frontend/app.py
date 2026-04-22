@@ -10,7 +10,7 @@ from requests.exceptions import RequestException
 DEFAULT_API_URL = "http://127.0.0.1:5000"
 REQUEST_TIMEOUT = 10
 
-st.set_page_config(page_title="Future Customer Portal", layout="wide")
+st.set_page_config(page_title="Customer Portal", layout="wide")
 
 
 def apply_theme() -> None:
@@ -29,6 +29,15 @@ def apply_theme() -> None:
                 --text-soft: #9bc4d9;
             }
 
+            /* Fix main content visibility */
+            .main .block-container {
+                padding-top: 2rem;
+                padding-bottom: 2rem;
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+                max-width: 100%;
+            }
+
             .stApp {
                 background:
                     radial-gradient(circle at 12% 8%, rgba(49, 217, 255, 0.16), transparent 28%),
@@ -41,9 +50,36 @@ def apply_theme() -> None:
                 padding-bottom: 2.2rem;
             }
 
+            /* Ensure proper column spacing */
+            div[data-testid="stHorizontalBlock"] {
+                gap: 1rem;
+            }
+
+            /* Fix tabs visibility */
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 0.5rem;
+            }
+
+            .stTabs [data-baseweb="tab"] {
+                padding: 0.75rem 1.25rem;
+            }
+
+            /* Fix form input visibility */
+            .stTextInput input, .stPassword input {
+                padding: 0.75rem 1rem;
+                font-size: 1rem;
+            }
+
+            /* Fix button visibility */
+            .stButton > button {
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+            }
+
             [data-testid="stSidebar"] {
                 background: linear-gradient(180deg, rgba(7, 23, 36, 0.95), rgba(4, 14, 24, 0.95));
                 border-right: 1px solid rgba(90, 204, 255, 0.24);
+                padding: 1rem;
             }
 
             .hero-shell {
@@ -217,6 +253,120 @@ def ensure_state() -> None:
         st.session_state.nl_result = None
     if "auth_customer_id" not in st.session_state:
         st.session_state.auth_customer_id = None
+    if "signed_in" not in st.session_state:
+        st.session_state.signed_in = False
+    if "username" not in st.session_state:
+        st.session_state.username = ""
+
+
+# Demo credentials for sign-in
+DEMO_USERS = {
+    "admin": "admin123",
+    "operator": "operator123",
+    "viewer": "viewer123",
+}
+
+
+def render_signin_form() -> None:
+    # Center the login form with proper spacing
+    st.markdown(
+        """
+        <style>
+            .login-container {
+                max-width: 400px;
+                margin: 80px auto;
+                padding: 40px;
+                background: linear-gradient(145deg, rgba(8, 29, 43, 0.85), rgba(9, 19, 30, 0.75));
+                border: 1px solid rgba(75, 205, 255, 0.35);
+                border-radius: 20px;
+                box-shadow: 0 0 40px rgba(49, 217, 255, 0.15);
+            }
+            .login-title {
+                font-family: "Orbitron", sans-serif;
+                font-size: 1.8rem;
+                color: #e8f7ff;
+                text-align: center;
+                margin-bottom: 8px;
+                letter-spacing: 0.08em;
+            }
+            .login-subtitle {
+                font-family: "Manrope", sans-serif;
+                color: #9bc4d9;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 0.95rem;
+            }
+            .demo-creds {
+                background: rgba(56, 242, 180, 0.1);
+                border: 1px solid rgba(56, 242, 180, 0.3);
+                border-radius: 12px;
+                padding: 15px;
+                margin-top: 20px;
+                text-align: center;
+            }
+            .demo-creds-title {
+                color: #38f2b4;
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+            }
+            .demo-creds-text {
+                color: #9bc4d9;
+                font-family: "Manrope", sans-serif;
+                font-size: 0.8rem;
+                line-height: 1.6;
+            }
+        </style>
+        <div class="login-container">
+            <h1 class="login-title">Customer Portal</h1>
+            <p class="login-subtitle">Sign in to access your dashboard</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Create a centered form container
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        with st.form("signin_form", clear_on_submit=True):
+            st.markdown("<div style='text-align: center; margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+            username = st.text_input("Username", placeholder="Enter username", label_visibility="collapsed")
+            password = st.text_input("Password", type="password", placeholder="Enter password", label_visibility="collapsed")
+            st.markdown("<br>", unsafe_allow_html=True)
+            submit = st.form_submit_button("Sign In", use_container_width=True)
+
+            if submit:
+                if username in DEMO_USERS and DEMO_USERS[username] == password:
+                    st.session_state.signed_in = True
+                    st.session_state.username = username
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+
+        # Show demo credentials below the form
+        st.markdown(
+            """
+            <div class="demo-creds">
+                <p class="demo-creds-title">Demo Credentials</p>
+                <p class="demo-creds-text">
+                    admin / admin123<br>
+                    operator / operator123<br>
+                    viewer / viewer123
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_signout_button() -> None:
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("Sign Out", use_container_width=True):
+            st.session_state.signed_in = False
+            st.session_state.username = ""
+            st.session_state.auth_customer_id = None
+            st.rerun()
 
 
 def normalize_customers_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -276,7 +426,7 @@ def render_hero(total_customers: int, scoped_customers: int, mode: str) -> None:
     st.markdown(
         f"""
         <div class="hero-shell">
-            <h1 class="hero-title">Future Customer Interaction Hub</h1>
+            <h1 class="hero-title">Customer Portal</h1>
             <p class="hero-copy">
                 Clear actions, fast diagnostics, and AI insights in one guided flow.
                 Mode: <strong>{mode_label}</strong> | Portfolio records: <strong>{total_customers}</strong>
@@ -312,6 +462,99 @@ def render_signal(title: str, payload) -> None:
         <div class="signal-card">
             <h4>{title}</h4>
             <pre>{formatted}</pre>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_health_text(health_result: dict) -> None:
+    """Render health score as a human-readable text message."""
+    customer_id = health_result.get("customer_id", "Unknown")
+    score = health_result.get("health_score", 0)
+
+    if score >= 80:
+        status = "Excellent"
+        emoji = "🌟"
+        description = "This customer has outstanding health metrics. They show strong engagement, high satisfaction, and stable contract status."
+    elif score >= 60:
+        status = "Good"
+        emoji = "✅"
+        description = "This customer is in good standing with healthy engagement patterns. Monitor for any changes in usage or satisfaction."
+    elif score >= 40:
+        status = "Moderate"
+        emoji = "⚠️"
+        description = "This customer shows some concerns that may need attention. Review NPS scores and ticket history for improvement opportunities."
+    else:
+        status = "At Risk"
+        emoji = "🚨"
+        description = "This customer requires immediate attention. Low health scores indicate potential churn risk. Consider proactive outreach."
+
+    st.markdown(
+        f"""
+        <div class="signal-card">
+            <h4>Health Assessment for Customer #{customer_id}</h4>
+            <pre style="font-size: 1.1rem; line-height: 1.6;">{emoji} Health Score: {score}/100 ({status})
+
+{description}
+
+The health score is calculated based on:
+• NPS Score (35% weight) - Customer satisfaction metric
+• Monthly Usage (30% weight) - Engagement level
+• Ticket Count (20% weight) - Support activity (inverse)
+• Contract Duration (15% weight) - Account stability</pre>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_churn_text(churn_result: dict) -> None:
+    """Render churn risk as a human-readable text message."""
+    customer_id = churn_result.get("customer_id", "Unknown")
+    probability = churn_result.get("churn_probability", 0)
+    explanation = churn_result.get("explanation", {})
+
+    probability_pct = probability * 100
+
+    if probability >= 0.6:
+        risk_level = "High Risk"
+        emoji = "🚨"
+        recommendation = "Immediate action recommended. Reach out to understand concerns and offer retention incentives."
+    elif probability >= 0.4:
+        risk_level = "Medium Risk"
+        emoji = "⚠️"
+        recommendation = "Schedule a check-in call to address any issues and reinforce value proposition."
+    elif probability >= 0.2:
+        risk_level = "Low Risk"
+        emoji = "✅"
+        recommendation = "Continue regular engagement. Monitor for any changes in usage or satisfaction."
+    else:
+        risk_level = "Very Low Risk"
+        emoji = "🌟"
+        recommendation = "Customer is stable. Focus on maintaining satisfaction and exploring upsell opportunities."
+
+    # Build factors text
+    factors_text = ""
+    if explanation and "top_factors" in explanation:
+        factors_text = "\nKey factors influencing this risk score:\n"
+        for factor in explanation["top_factors"]:
+            factor_name = factor.get("label", factor.get("factor", "Unknown"))
+            direction = factor.get("direction", "neutral")
+            factors_text += f"• {factor_name}: {direction}\n"
+
+    st.markdown(
+        f"""
+        <div class="signal-card">
+            <h4>Churn Risk Assessment for Customer #{customer_id}</h4>
+            <pre style="font-size: 1.1rem; line-height: 1.6;">{emoji} Churn Probability: {probability_pct:.1f}% ({risk_level})
+
+{recommendation}{factors_text}
+The churn prediction model analyzes:
+• NPS Score - Lower scores increase churn risk
+• Monthly Usage - Lower usage indicates disengagement
+• Ticket Count - High support activity may signal issues
+• Contract Days Left - Expiring contracts increase risk</pre>
         </div>
         """,
         unsafe_allow_html=True,
@@ -521,6 +764,16 @@ def render_plan_segment_chart(df: pd.DataFrame) -> None:
 
 apply_theme()
 ensure_state()
+
+# Sign-in gate
+if not st.session_state.signed_in:
+    render_signin_form()
+    st.stop()
+
+# Show sign-out button after successful sign-in
+render_signout_button()
+st.markdown(f"**Signed in as:** {st.session_state.username}")
+st.write("")
 
 st.sidebar.markdown("## Command Rail")
 api_url = st.sidebar.text_input("Backend API URL", value=DEFAULT_API_URL)
@@ -788,10 +1041,10 @@ with tab_diagnostics:
                     )
 
     if st.session_state.health_result is not None:
-        render_signal("Health Signal", st.session_state.health_result)
+        render_health_text(st.session_state.health_result)
 
     if st.session_state.churn_result is not None:
-        render_signal("Churn Signal", st.session_state.churn_result)
+        render_churn_text(st.session_state.churn_result)
 
 with tab_ai:
     st.subheader("AI Concierge")
