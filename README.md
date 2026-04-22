@@ -65,3 +65,62 @@ The system uses **synthetic data** and simulates real-world enterprise analytics
 ---
 
 ## 📁 Project Structure
+smart-customer-portal/
+│
+├── app.py
+├── models/
+├── routes/
+├── services/
+├── generate_data.py
+│
+frontend/
+├── app.py
+
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Clone Repository
+
+backend Setup
+
+```bash
+git clone https://github.com/Ashanbk/Smart-Customer-Management-Portal-with-AI-Driven-Insights.git
+cd Smart-Customer-Management-Portal-with-AI-Driven-Insights
+```
+
+Load Data
+
+```bash
+python generate_data.py
+```
+
+Run Frontend
+
+```bash
+cd ../frontend
+streamlit run app.py
+```
+
+# 🌐 Access
+Backend: http://127.0.0.1:5000
+Frontend: http://localhost:8501
+
+# 📦 Deliverables
+✅ Working full-stack application
+✅ 200+ synthetic customer records
+✅ AI-powered analytics features
+✅ Natural language query system
+✅ GitHub repository with source code
+
+#  🎯 Future Improvements
+Deploy to cloud (Streamlit Cloud / Render)
+Add authentication
+Improve ML model accuracy
+Add advanced analytics dashboards
+
+#👨‍💻 Author
+
+Ashan Kadadi
+Aashritha Rajendra
