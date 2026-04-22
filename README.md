@@ -1,131 +1,67 @@
 # 🧠 Smart Customer Management Portal with AI-Driven Insights
 
-A lightweight AI-powered customer management web application for a fictional networking hardware company. This project combines traditional CRM features with machine learning and LLM-based intelligence to provide actionable customer insights.
+A full-stack AI-powered customer management system built for a fictional networking hardware company. This project combines traditional CRM functionality with machine learning and natural language processing to deliver actionable business insights.
 
 ---
 
-# 🚀 Overview
+## 🚀 Overview
 
-This portal enables users to manage customer data while leveraging AI to:
+This application allows users to:
 
-* Perform natural language queries on customer data
-* Predict customer churn risk
-* Generate account health scores
-* Automate weekly customer summary reports
+- Manage customer data (CRUD operations)
+- Analyze customer health scores
+- Predict churn risk using AI/ML
+- Perform natural language queries on customer data
+- Generate automated weekly email summaries
 
-The system uses synthetic data and simulates real-world enterprise analytics workflows.
-
----
-
-# 🛠️ Tech Stack
-
-* **Backend:** Flask
-* **Database:** SQLite
-* **ORM:** SQLAlchemy
-* **ML:** scikit-learn
-* **AI Integration:** OpenAI API
-* **Data Generation:** Faker
+The system uses **synthetic data** and simulates real-world enterprise analytics workflows.
 
 ---
 
-# 📁 Project Structure
+## 🏗️ Tech Stack
 
-```
-smart-customer-portal/
-│
-├── models/                # Database models
-├── routes/                # API routes (customers, tickets, devices, NL queries)
-├── services/              # Business logic (health score, churn, email summary)
-├── app.py                 # Flask app entry point
-├── generate_data.py       # Script to generate synthetic data
-├── train_churn_model.py   # ML model training script
-├── requirements.txt
-```
+### Backend
+- Python (Flask)
+- SQLAlchemy (ORM)
+- SQLite (Database)
+- AI/ML logic (custom scoring + rule-based model)
 
----
+### Frontend
+- Streamlit (interactive dashboard)
 
-# ✅ Progress (Day 1)
-
-### 🔹 Backend Setup
-
-* Created Flask application structure
-* Configured SQLite database
-* Initialized SQLAlchemy
-
-### 🔹 API Development
-
-* Implemented Customer APIs:
-
-  * `GET /customers`
-  * `POST /customers`
-  * `PUT /customers/<id>`
-  * `DELETE /customers/<id>`
-
-### 🔹 Advanced Features APIs
-
-* `GET /customers/<id>/health-score` → AI-based health score
-* `GET /customers/<id>/churn-risk` → ML churn prediction
-* `GET /customers/<id>/email-summary` → AI-generated report
-
-### 🔹 Routing Architecture
-
-* Used Flask Blueprints for modular structure
-* Centralized routing via `main_bp`
+### AI Features
+- Natural Language Query Interface
+- Customer Health Score
+- Churn Risk Prediction
+- Email Summary Generator
 
 ---
 
-# ⚙️ How to Run
+## 📊 Features
 
-```bash
-pip install -r requirements.txt
-python app.py
-```
+### 1. Customer Management
+- Create, Read, Update, Delete customers
+- Store company details, usage, NPS, contracts
 
-Open in browser:
+### 2. AI-Powered Insights
+- 📈 Health Score (based on NPS, usage, tickets)
+- ⚠️ Churn Prediction (risk probability + explanation)
+- 🤖 Natural Language Query system
 
-```
-http://127.0.0.1:5000/
-```
-
----
-
-# 🧪 API Testing
-
-Example endpoint:
-
-```
-http://127.0.0.1:5000/customers
-```
-
-Use tools like Postman or browser for testing.
+### 3. Dashboard
+- Interactive UI using Streamlit
+- Data tables and visualizations
+- Real-time API integration
 
 ---
 
-# 🔜 Next Steps
+## 🧪 Sample Queries
 
-* Generate 200+ synthetic customer records
-* Train churn prediction model
-* Implement natural language query interface
-* Build frontend dashboard (Streamlit/React)
-* Add data visualizations
-
----
-
-# 📌 Notes
-
-* Ensure all route modules are imported in `routes/main.py`
-* Restart server after making changes
-* Use `.env` for API keys (future integration)
+- `low nps customers`
+- `customers in apac`
+- `high usage customers`
+- `enterprise plan customers`
 
 ---
 
----
-
-* Clearing and checking fakers/generating fake customer IDs to test
-* Entering frontend 
-# 👨‍💻 Author
-
-Ashan Kadadi
-Aashritha Rajendra
-
----
+## 📁 Project Structure
