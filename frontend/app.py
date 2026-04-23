@@ -31,8 +31,8 @@ def apply_theme() -> None:
 
             /* Fix main content visibility */
             .main .block-container {
-                padding-top: 2rem;
-                padding-bottom: 2rem;
+                padding-top: 4rem;
+                padding-bottom: 1rem;
                 padding-left: 1.5rem;
                 padding-right: 1.5rem;
                 max-width: 100%;
@@ -46,7 +46,7 @@ def apply_theme() -> None:
             }
 
             .block-container {
-                padding-top: 1.1rem;
+                padding-top: 4rem;
                 padding-bottom: 2.2rem;
             }
 
@@ -67,13 +67,13 @@ def apply_theme() -> None:
             /* Fix form input visibility */
             .stTextInput input, .stPassword input {
                 padding: 0.75rem 1rem;
-                font-size: 1rem;
+                font-size: 0.9rem;
             }
 
             /* Fix button visibility */
             .stButton > button {
-                padding: 0.75rem 1.5rem;
-                font-size: 1rem;
+                padding: 0.4rem 1rem; margin-bottom: 5px;
+                font-size: 0.9rem;
             }
 
             [data-testid="stSidebar"] {
@@ -151,7 +151,7 @@ def apply_theme() -> None:
                 font-family: "Orbitron", sans-serif;
                 color: var(--text-main);
                 margin: 0 0 0.35rem 0;
-                font-size: 0.95rem;
+                font-size: 0.85rem;
             }
 
             .step-box p {
@@ -197,6 +197,8 @@ def apply_theme() -> None:
                 background: linear-gradient(120deg, #0a3146, #0f4768);
                 font-family: "Orbitron", sans-serif;
                 letter-spacing: 0.04em;
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
                 transition: 0.18s transform, 0.18s box-shadow;
             }
 
@@ -274,8 +276,8 @@ def render_signin_form() -> None:
         <style>
             .login-container {
                 max-width: 400px;
-                margin: 80px auto;
-                padding: 40px;
+                margin: 2vh auto;
+                padding: 1.5vh;
                 background: linear-gradient(145deg, rgba(8, 29, 43, 0.85), rgba(9, 19, 30, 0.75));
                 border: 1px solid rgba(75, 205, 255, 0.35);
                 border-radius: 20px;
@@ -283,7 +285,7 @@ def render_signin_form() -> None:
             }
             .login-title {
                 font-family: "Orbitron", sans-serif;
-                font-size: 1.8rem;
+                font-size: 1rem;
                 color: #e8f7ff;
                 text-align: center;
                 margin-bottom: 8px;
@@ -293,8 +295,8 @@ def render_signin_form() -> None:
                 font-family: "Manrope", sans-serif;
                 color: #9bc4d9;
                 text-align: center;
-                margin-bottom: 30px;
-                font-size: 0.95rem;
+                margin-bottom: 15px;
+                font-size: 0.85rem;
             }
             .demo-creds {
                 background: rgba(56, 242, 180, 0.1);
@@ -360,7 +362,7 @@ def render_signin_form() -> None:
 
 
 def render_signout_button() -> None:
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([6, 2, 2])
     with col2:
         if st.button("Sign Out", use_container_width=True):
             st.session_state.signed_in = False
@@ -451,21 +453,75 @@ def render_kpi(label: str, value: str, note: str) -> None:
     )
 
 
-def render_signal(title: str, payload) -> None:
-    formatted = (
-        json.dumps(payload, indent=2)
-        if isinstance(payload, (dict, list))
-        else str(payload)
+def render_ai_response(payload) -> None:
+    """Render AI output in a user-friendly way instead of raw JSON."""
+    if not isinstance(payload, dict):
+        st.markdown("### AI Response")
+        st.write(str(payload))
+        return
+
+    if isinstance(payload.get("error"), str):
+        st.error(payload["error"])
+        return
+
+    results = payload.get("results")
+    query_mode = payload.get("query_mode")
+    intent = payload.get("intent") or payload.get("query_type")
+    row_count = payload.get("row_count")
+
+    display_row_count = (
+        row_count
+        if isinstance(row_count, int)
+        else len(results)
+        if isinstance(results, list)
+        else "N/A"
     )
-    st.markdown(
-        f"""
-        <div class="signal-card">
-            <h4>{title}</h4>
-            <pre>{formatted}</pre>
-        </div>
-        """,
-        unsafe_allow_html=True,
+
+    st.markdown("### AI Response")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rows Returned", str(display_row_count))
+    col2.metric(
+        "Query Mode",
+        str(query_mode).replace("_", " ").title() if query_mode else "N/A",
     )
+    col3.metric("Intent", str(intent).replace("_", " ").title() if intent else "N/A")
+
+    extra_notes: list[str] = []
+    if payload.get("used_previous_context"):
+        extra_notes.append("Used previous query context.")
+    confidence = payload.get("intent_confidence")
+    if isinstance(confidence, (int, float)):
+        extra_notes.append(f"Intent confidence: {float(confidence):.2f}.")
+    if extra_notes:
+        st.caption(" ".join(extra_notes))
+
+    if isinstance(results, list):
+        if results:
+            st.dataframe(pd.DataFrame(results), use_container_width=True)
+        else:
+            st.info("No matching records were found for this request.")
+    elif "raw_response" in payload:
+        st.write(payload["raw_response"])
+
+    with st.expander("Show technical details"):
+        query = payload.get("query")
+        if isinstance(query, str) and query.strip():
+            st.write("Question")
+            st.code(query.strip())
+
+        sql_query = payload.get("sql_query")
+        if isinstance(sql_query, str) and sql_query.strip():
+            st.write("Generated SQL")
+            st.code(sql_query.strip(), language="sql")
+
+        metadata = {
+            key: value
+            for key, value in payload.items()
+            if key not in {"query", "sql_query", "results"}
+        }
+        if metadata:
+            st.write("Metadata")
+            st.json(metadata)
 
 
 def render_health_text(health_result: dict) -> None:
@@ -1096,7 +1152,7 @@ with tab_ai:
                 st.success("AI insight generated.")
 
     if st.session_state.nl_result is not None:
-        render_signal("AI Response", st.session_state.nl_result)
+        render_ai_response(st.session_state.nl_result)
 
 with tab_trends:
     st.subheader("Trend Radar")
