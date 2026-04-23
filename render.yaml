@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: smart-customer-backend
+    env: python
+    rootDir: smart-customer-portal
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn 'app:create_app()'"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.4
+
+  - type: web
+    name: smart-customer-frontend
+    env: python
+    rootDir: frontend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "streamlit run app.py --server.port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.4
+      - key: BACKEND_URL # If the frontend needs to know where the backend is, it can be set here.
+        fromService:
+          type: web
+          name: smart-customer-backend
+          envVarKey: RENDER_EXTERNAL_URL
