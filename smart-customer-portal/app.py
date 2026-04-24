@@ -14,7 +14,6 @@ def create_app() -> Flask:
     app.register_blueprint(main_bp)
 
     with app.app_context():
-        from models import db
         db.create_all()
 
         from models import Customer
