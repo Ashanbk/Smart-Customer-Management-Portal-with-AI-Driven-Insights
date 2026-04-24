@@ -93,8 +93,18 @@ def build_customer(fake: Faker):
     return customer
 
 
-def seed_data(customer_total: int, reset: bool):
+def generate_customers(customer_total: int = 220):
     fake = Faker()
+    customers = [build_customer(fake) for _ in range(customer_total)]
+    db.session.add_all(customers)
+    db.session.commit()
+    print(
+        f"Data generation complete: inserted {customer_total} customers "
+        f"(with tickets and devices)."
+    )
+
+
+def seed_data(customer_total: int, reset: bool):
     app = create_app()
 
     with app.app_context():
@@ -102,15 +112,7 @@ def seed_data(customer_total: int, reset: bool):
             db.drop_all()
 
         db.create_all()
-
-        customers = [build_customer(fake) for _ in range(customer_total)]
-        db.session.add_all(customers)
-        db.session.commit()
-
-    print(
-        f"Data generation complete: inserted {customer_total} customers "
-        f"(with tickets and devices)."
-    )
+        generate_customers(customer_total)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,13 @@ def create_app() -> Flask:
     app.register_blueprint(main_bp)
 
     with app.app_context():
+        from models import db
         db.create_all()
+
+        from models import Customer
+        if Customer.query.count() == 0:
+            from generate_data import generate_customers
+            generate_customers()
 
     @app.route("/")
     def home():

@@ -8,7 +8,7 @@ import streamlit as st
 import os
 from requests.exceptions import RequestException
 
-DEFAULT_API_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
+DEFAULT_API_URL = os.environ.get("BACKEND_URL", "https://smart-customer-management-portal-with-ai-k3yj.onrender.com")
 REQUEST_TIMEOUT = 10
 
 st.set_page_config(page_title="Customer Portal", layout="wide")
